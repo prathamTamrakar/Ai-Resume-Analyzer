@@ -33,7 +33,7 @@ export default function UploadResume() {
 
     try {
       await axios.post(
-        "http://localhost:5000/api/resume/upload",
+        `${import.meta.env.VITE_API_URL}/api/resume/upload`,
         formData,
         {
           headers: {

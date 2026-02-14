@@ -1,11 +1,10 @@
+import dotenv from "dotenv";
+
+dotenv.config();
 import express from "express";
 import multer from "multer";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-
-import pdfParse from "pdf-parse";
-
-
+// import { PDFParse } from 'pdf-parse';
+import PdfParse from "pdf-parse-new";
 import docxParser from "docx-parser";
 import OpenAI from "openai";
 import fs from "fs";
@@ -23,16 +22,14 @@ let client = null;
 if (process.env.OPENAI_API_KEY) {
   client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL
   });
 } else {
   console.error(
     "OPENAI_API_KEY is missing. Please add it to .env or set the environment variable."
   );
 }
-
-
-
-
+// console.log(client);
 
 // Convert DOCX to text
 const extractDocxText = (filePath) =>
@@ -49,28 +46,32 @@ router.post("/upload", auth, upload.single("resume"), async (req, res) => {
     const { jobDescription } = req.body;
     const filePath = req.file.path;
     const fileType = req.file.mimetype;
-
+    const buffer = fs.readFileSync(filePath);
     let resumeText = "";
-    // Load pdf-parse dynamically (always correct in ESM)
-const { default: pdfParse } = await import("pdf-parse");
-
 
     // Extract resume text based on file type
     if (fileType.includes("pdf")) {
-      const data = await pdfParse(fs.readFileSync(filePath));
+      // const data = new PDFParse({url:buffer});
+      // resumeText = (await data.getText()).text;
+      const data = await PdfParse(buffer);
       resumeText = data.text;
     } else if (fileType.includes("word")) {
       resumeText = await extractDocxText(filePath);
     } else {
       return res.status(400).json({ message: "Unsupported file type ❌" });
     }
-
+    
     // Ensure OpenAI client is configured before calling it
     if (!client) {
+      
       return res
         .status(500)
         .json({ message: "OpenAI API key not configured on server. Contact admin." });
     }
+
+    console.log(resumeText);
+    console.log(jobDescription);
+    
 
     // Call OpenAI for scoring
     const prompt = `
@@ -98,7 +99,8 @@ Return results in this JSON format only:
     });
 
     const aiResponse = JSON.parse(completion.choices[0].message.content);
-
+    console.log(aiResponse);
+    
     const saved = await Resume.create({
       userId: req.user,
       resumeFile: req.file.filename,
@@ -115,5 +117,24 @@ Return results in this JSON format only:
     res.json({ message: "AI Analysis Failed ❌", error: error.message });
   }
 });
+
+// Get Latest Resume Review
+router.get("/latest", auth, async (req, res) => {
+  try {
+    const latestResume = await Resume.find({ userId: req.user })
+      .sort({ createdAt: -1 });
+
+    if (!latestResume) {
+      return res.status(404).json({ message: "No resume review found" });
+    }
+
+    res.json(latestResume);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch resume review" });
+  }
+});
+
 
 export default router;

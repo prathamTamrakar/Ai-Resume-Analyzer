@@ -13,7 +13,7 @@ router.post("/signup", async (req, res) => {
 
   await User.create({ name, email, password: hashed });
 
-  res.json({ message: "User registered successfully ✅" });
+  res.json({ message: "User registered successfully" });
 });
 
 // Login

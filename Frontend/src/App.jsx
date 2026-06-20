@@ -11,7 +11,7 @@ function App() {
   const hideNavbar = location.pathname === "/login" || location.pathname === "/signup";
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[var(--color-bg)]">
       {!hideNavbar && <Navbar />}
 
       <Routes>

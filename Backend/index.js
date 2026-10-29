@@ -8,6 +8,7 @@ import connectDB from './config/db.js';
 
 import authRoutes from './routes/authRoutes.js';
 import resumeRoutes from './routes/resumeRoutes.js';
+import healthRoutes from './routes/healthRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,6 +21,7 @@ const PORT = process.env.PORT || 5000;
 connectDB().then(() => console.log('MongoDB connected')).catch(err => console.log(err));
 
 // Routes
+app.use('/api/health', healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/resume", resumeRoutes);
 
